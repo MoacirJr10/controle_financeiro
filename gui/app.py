@@ -5,6 +5,7 @@ from datetime import datetime
 from utils.icons import ICONES
 from data.database import adicionar_transacao, listar_transacoes, deletar_transacao
 
+
 class FinanceApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -15,7 +16,9 @@ class FinanceApp(tk.Tk):
         self.filtrar()
 
     def build_interface(self):
-        # Frame de entrada
+        """Cria e organiza a interface gráfica da aplicação."""
+
+        # Frame de entrada de dados
         entrada_frame = ttk.LabelFrame(self, text=f"{ICONES['entrada']} Nova Transação")
         entrada_frame.pack(padx=10, pady=10, fill='x')
 
@@ -60,11 +63,12 @@ class FinanceApp(tk.Tk):
         self.tree.pack(expand=True, fill="both", padx=10, pady=10)
         self.tree.bind("<Button-3>", self.menu_contexto)
 
-        # Saldo
+        # Label de saldo
         self.label_saldo = ttk.Label(self, text=f"{ICONES['dinheiro']} Saldo: R$ 0.00", font=("Arial", 12, "bold"))
         self.label_saldo.pack(pady=5)
 
     def adicionar(self):
+        """Adiciona uma nova transação após validação."""
         tipo = self.tipo.get()
         categoria = self.categoria.get().strip()
         valor_str = self.valor.get().replace(",", ".").strip()
@@ -89,15 +93,20 @@ class FinanceApp(tk.Tk):
             return
 
         if adicionar_transacao(tipo, categoria, valor, data):
+            self.limpar_campos()
             self.filtrar()
-            self.valor.delete(0, tk.END)
-            self.valor.insert(0, "Valor")
-            self.categoria.delete(0, tk.END)
-            self.categoria.insert(0, "Categoria")
         else:
             messagebox.showerror("Erro", "Erro ao adicionar a transação.")
 
+    def limpar_campos(self):
+        """Limpa os campos de entrada após uma transação bem-sucedida."""
+        self.valor.delete(0, tk.END)
+        self.valor.insert(0, "Valor")
+        self.categoria.delete(0, tk.END)
+        self.categoria.insert(0, "Categoria")
+
     def filtrar(self):
+        """Filtra e exibe as transações com base no mês e ano inseridos."""
         self.tree.delete(*self.tree.get_children())
 
         try:
@@ -117,6 +126,7 @@ class FinanceApp(tk.Tk):
         self.label_saldo.config(text=f"{ICONES['dinheiro']} Saldo: R$ {saldo:.2f}")
 
     def menu_contexto(self, event):
+        """Exibe o menu de contexto ao clicar com o botão direito na tabela."""
         iid = self.tree.identify_row(event.y)
         if iid:
             self.tree.selection_set(iid)
@@ -125,9 +135,12 @@ class FinanceApp(tk.Tk):
             menu.post(event.x_root, event.y_root)
 
     def excluir(self, iid):
+        """Exclui uma transação após confirmação do usuário."""
         item = self.tree.item(iid)
         transacao_id = item["values"][0]
         confirmar = messagebox.askyesno("Confirmar Exclusão", "Deseja excluir esta transação?")
         if confirmar:
-            deletar_transacao(transacao_id)
-            self.filtrar()
+            if deletar_transacao(transacao_id):
+                self.filtrar()
+            else:
+                messagebox.showerror("Erro", "Erro ao excluir a transação.")
