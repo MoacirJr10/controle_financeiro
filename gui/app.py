@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+import math
+from decimal import Decimal
 
 from utils.icons import ICONES
 from data.database import adicionar_transacao, listar_transacoes, deletar_transacao
@@ -80,7 +82,7 @@ class FinanceApp(tk.Tk):
 
         try:
             valor = float(valor_str)
-            if valor <= 0:
+            if not math.isfinite(valor) or valor <= 0:
                 raise ValueError
         except ValueError:
             messagebox.showerror("Erro", "Digite um valor numérico positivo.")
@@ -107,21 +109,23 @@ class FinanceApp(tk.Tk):
 
     def filtrar(self):
         """Filtra e exibe as transações com base no mês e ano inseridos."""
-        self.tree.delete(*self.tree.get_children())
-
         try:
             mes = int(self.mes.get())
             ano = int(self.ano.get())
+            if not 1 <= mes <= 12 or not 1 <= ano <= 9999:
+                raise ValueError
         except ValueError:
-            messagebox.showerror("Erro", "Mês e Ano devem ser numéricos.")
+            messagebox.showerror("Erro", "Digite um mês entre 1 e 12 e um ano válido.")
             return
 
+        self.tree.delete(*self.tree.get_children())
         transacoes = listar_transacoes(mes, ano)
-        saldo = 0.0
+        saldo = Decimal('0.00')
 
         for tr in transacoes:
             self.tree.insert("", tk.END, values=tr)
-            saldo += tr[3] if tr[1] == "Entrada" else -tr[3]
+            valor = Decimal(str(tr[3])).quantize(Decimal("0.01"))
+            saldo += valor if tr[1] == "Entrada" else -valor
 
         self.label_saldo.config(text=f"{ICONES['dinheiro']} Saldo: R$ {saldo:.2f}")
 
